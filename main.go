@@ -1,7 +1,7 @@
 package main
 
 import (
-	"easyws"
+	"github.com/willcrichton/easyws"
 	"fmt"
 	"net/http"
 	"html/template"
@@ -27,6 +27,7 @@ var (
 	students *mgo.Collection
 	tmplPath = "www"
 	sessName = "_98232session"
+	htmlRoot = ""
 	fileserver = http.FileServer(http.Dir(tmplPath))
 )
 	
