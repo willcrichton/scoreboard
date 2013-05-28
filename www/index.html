@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/bootstrap-responsive.css" rel="stylesheet" />
+    <link href="css/style.css" rel="stylesheet" />
+	<script>
+	  ws = new WebSocket("ws://localhost:8080/ws");
+	</script>
+  </head>
+  <body>
+   <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">98-232</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="#challenge">Challenge</a></li>
+			  
+            </ul>
+			{{ if .LoggedIn }}
+			<div class="pull-right">
+			  <p class="navbar-text pull-left">Welcome, {{ .Andrew }}</p>
+			  <button class="btn">Sign out</button>
+			</div>
+			{{ else }}
+            <form class="navbar-form pull-right" method="POST" action="/scoreboard/login">
+              <input class="span2" type="text" name="andrew" placeholder="Andrew">
+              <input class="span2" type="password" name="password" placeholder="Password">
+              <input type="hidden" name="post" value="login" />
+              <button type="submit" class="btn">Sign in</button>
+            </form>
+			{{ end }}
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+    <div class="container">
+       <div class="row">
+            <div class="span4">
+                <h1>Leaderboard</h1>
+                <table class="table">
+                    <tr>
+                        <th>#</th>
+                        <th>Andrew</th>
+                        <th>Score</th>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>wcrichto</td>
+                        <td>100</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="span8">
+                <h1>Today's Challenge</h1>
+            </div> 
+       </div>
+
+    </div>  
+    <script src="js/jquery-1.10.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+  </body>
+</html>
