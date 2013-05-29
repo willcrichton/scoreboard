@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/sessions"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"log"
 )
 
@@ -42,7 +43,16 @@ var (
 	
 
 func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub){
-	fmt.Println(msg)
+	var result struct { Key, Value string }
+	err := json.Unmarshal([]byte(msg), &result)
+	if err != nil {
+		c.Send("bad message")
+		return
+	}
+	switch result.Key {
+	case "release":
+		c.Send("ok, we'll release it")
+	}
 }
 
 func wsOnJoin(c *easyws.Connection, h *easyws.Hub){
@@ -57,8 +67,22 @@ func router(w http.ResponseWriter, r *http.Request){
 		loginHandler(w, r)
 	case "/logout":
 		logoutHandler(w, r)
+	case "/admin":
+		adminPage(w, r)
 	default:
 		fileserver.ServeHTTP(w, r)
+	}
+}
+
+func serve(file string, w http.ResponseWriter, data interface{}){	
+	t := template.New(file)
+	templ, err := t.ParseFiles(tmplPath + "/" + file, tmplPath + "/_header.html", tmplPath + "/_footer.html")
+	if err != nil {
+		panic(err)
+	}
+	err = templ.Execute(w, data)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -91,16 +115,23 @@ func homePage(w http.ResponseWriter, r *http.Request){
 			}
 		}
 	}
+	serve("index.html", w, data)
+}
+
+func adminPage(w http.ResponseWriter, r *http.Request){
+	session, err := store.Get(r, sessName)
+	if err != nil {
+		w.Write([]byte("bad cookie"))
+		return;
+	}
 	
-	t := template.New("index.html")
-	templ, err := t.ParseFiles(tmplPath + "/index.html")
-	if err != nil {
-		panic(err)
+	if session.Values["logged_in"] != "yes" ||
+		(session.Values["andrew"] != "wcrichto" && session.Values["andrew"] != "jamesyan") {
+		http.Redirect(w, r, htmlRoot + "/", http.StatusFound)
+		return
 	}
-	err = templ.Execute(w, data)
-	if err != nil {
-		panic(err)
-	}
+
+	serve("admin.html", w, nil)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request){

@@ -1,0 +1,12 @@
+{{ template "header" . }}
+<button id="thebutton">THE RELEASE BUTTON</button>
+<input type="password" id="release" />
+<script>
+    ws.onmessage = function(e){
+        console.log(e)
+    }
+    $('#thebutton').click(function(){
+        ws.send(JSON.stringify({key: 'release', value: $('#release').val()}));
+    });
+</script>
+{{ template "footer" . }}
