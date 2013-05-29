@@ -33,7 +33,7 @@ type score struct {
 }
 
 var (
-	store = sessions.NewCookieStore([]byte("sekrut")) 
+	store = sessions.NewCookieStore([]byte(SESSIONKEY)) 
 	students *mgo.Collection
 	tmplPath = "www"
 	sessName = "_98232session"
@@ -126,7 +126,7 @@ func adminPage(w http.ResponseWriter, r *http.Request){
 	}
 	
 	if session.Values["logged_in"] != "yes" ||
-		(session.Values["andrew"] != "wcrichto" && session.Values["andrew"] != "jamesyan") {
+		(session.Values["andrew"] != ROOT1 && session.Values["andrew"] != ROOT2) {
 		http.Redirect(w, r, htmlRoot + "/", http.StatusFound)
 		return
 	}
