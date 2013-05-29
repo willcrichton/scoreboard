@@ -2,6 +2,6 @@ body {
   padding-top: 70px;
 }
 
-.navbar button {
+.navbar a.btn {
     margin-left: 10px;
 }
