@@ -16,10 +16,19 @@ import (
 type tmpl_data struct {
 	Andrew   string
 	LoggedIn bool
+	Root     string
+	Scores   []score
 }
 
-type user struct {
+type student struct {
 	Andrew   string
+	Points   int
+}
+
+type score struct {
+	Andrew string
+	Score  int
+	Place  int
 }
 
 var (
@@ -63,9 +72,26 @@ func homePage(w http.ResponseWriter, r *http.Request){
 	data := tmpl_data{}
 	if session.Values["andrew"] != nil {
 		data.Andrew = session.Values["andrew"].(string)
-	}
+	} 
 	data.LoggedIn = session.Values["logged_in"] == "yes"
+	data.Root = htmlRoot
+	data.Scores = make([]score, 10)
 
+	var result []student
+	err = students.Find(nil).Sort("-points").Limit(10).All(&result)
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < 10; i++ {
+		if i < len(result) {
+			data.Scores[i] = score{
+				Andrew: result[i].Andrew,
+				Score: result[i].Points,
+				Place: i + 1,
+			}
+		}
+	}
+	
 	t := template.New("index.html")
 	templ, err := t.ParseFiles(tmplPath + "/index.html")
 	if err != nil {

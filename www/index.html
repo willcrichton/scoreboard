@@ -4,9 +4,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet" />
     <link href="css/bootstrap-responsive.css" rel="stylesheet" />
     <link href="css/style.css" rel="stylesheet" />
-	<script>
-	  ws = new WebSocket("ws://localhost:8080/ws");
-	</script>
+    <script>
+      ws = new WebSocket("ws://localhost:8080/{{ .Root }}/ws");
+    </script>
   </head>
   <body>
    <div class="navbar navbar-inverse navbar-fixed-top">
@@ -51,20 +51,25 @@
                         <th>Andrew</th>
                         <th>Score</th>
                     </tr>
+                    {{ with .Scores }}
+                        {{ range . }}
                     <tr>
-                        <td>1</td>
-                        <td>wcrichto</td>
-                        <td>100</td>
+                        <td>{{ .Place }}</td>
+                        <td>{{ .Andrew }}</td>
+                        <td>{{ .Score }}</td>
                     </tr>
+                        {{ end }}
+                    {{ end }}
                 </table>
             </div>
             <div class="span8">
                 <h1>Today's Challenge</h1>
+                {{ template "challenege" . }}                
             </div> 
        </div>
 
     </div>  
-    <script src="js/jquery-1.10.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    <script src="{{ .Root }}/js/jquery-1.10.js"></script>
+    <script src="{{ .Root }}/js/bootstrap.min.js"></script>
   </body>
 </html>
