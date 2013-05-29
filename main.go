@@ -46,6 +46,8 @@ func router(w http.ResponseWriter, r *http.Request){
 		homePage(w, r)
 	case "/login":
 		loginHandler(w, r)
+	case "/logout":
+		logoutHandler(w, r)
 	default:
 		fileserver.ServeHTTP(w, r)
 	}
@@ -102,6 +104,17 @@ func loginHandler(w http.ResponseWriter, r *http.Request){
 	session.Values["andrew"] = result.Andrew
 	sessions.Save(r, w)
 
+	http.Redirect(w, r, htmlRoot + "/", http.StatusFound)
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request){
+	session, err := store.Get(r, sessName)
+	if err != nil {
+		http.Redirect(w, r, htmlRoot + "/?fail", http.StatusFound)
+		return
+	}
+	session.Values["logged_in"] = "no"
+	sessions.Save(r, w)
 	http.Redirect(w, r, htmlRoot + "/", http.StatusFound)
 }
 
