@@ -1,9 +1,21 @@
 {{ template "header" . }}
 <div id="admin">
-    <form>
+    <form class="span6">
         <h3>THE FORM OF ULTIMATE DESTINY</h3>
+        <select class="select" name="challenge">
+        {{ range .Challenges }}
+            <option>{{ .Name }} (Week {{ .Week }})</option>
+        {{ end }}
+        </select><br />
+        <input type="password" id="release" /><br />
         <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
-        <input type="password" id="release" />
+    </form>
+    <form class="span4" method="POST">
+        <h3>THE LESS EXCITING FORM</h3>
+        <input type="text" placeholder="Name" name="name" /><br />
+        <input type="number" class="span" value="0" name="week" /><br />
+        <input class="btn" type="submit" value="Save" />
+        <input type="hidden" name="post" value="challenge" />
     </form>
     <table class="table">
         <tr>
