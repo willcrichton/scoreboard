@@ -5,3 +5,26 @@ body {
 .navbar a.btn {
     margin-left: 10px;
 }
+
+.navbar .navbar-text {
+    color: white;
+    text-shadow: none;
+}
+
+input[type=file] {
+    line-height: 1em;
+    height: auto;
+}
+
+#admin input[type=password] { margin: 0; }
+
+#admin form {
+    background: #f6f6f6;
+    border: 1px solid #666;
+    padding: 15px;
+    -webkit-border-radius: 8px;
+}
+
+#admin h3 {
+    margin: 0 0 10px 0;
+}
