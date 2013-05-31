@@ -1,0 +1,6 @@
+{{ define "challenge" }}
+<form action="{{ .Root }}/submit" method="post" enctype="multipart/form-data">
+    <input type="file" name="submission" /><input type="submit" value="Submit" />
+    <input type="hidden" name="post" value="upload" />
+</form> 
+{{ end }}
