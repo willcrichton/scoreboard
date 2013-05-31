@@ -16,7 +16,7 @@ input[type=file] {
     height: auto;
 }
 
-#admin input[type=password] { margin: 0; }
+#admin input[type=password] { margin: 0 0 10px 0; }
 
 #admin form {
     background: #f6f6f6;
