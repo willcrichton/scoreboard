@@ -11,6 +11,7 @@
       ws = new WebSocket("ws://localhost:8000{{ .Root }}/ws");
       ws.onopen = function(e){ console.log("websocket opened"); }
       ws.onclose = function(e){ console.log("websocket closed", e); }
+      ws.onmessage = function(e){ console.log(e.data); }
     </script>
   </head>
   <body>
@@ -22,11 +23,11 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="brand" href="/">98-232: Web Games</a>
+          <a class="brand" href="{{ .Root }}/">98-232: Web Games</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li class="active"><a href="/">Home</a></li>
-              <li><a href="#challenge">Challenge</a></li>
+              <li class="active"><a href="{{ .Root }}/">Home</a></li>
+              <li><a href="{{ .Root }}/challenge">Challenge</a></li>
             </ul>
             {{ if .LoggedIn }}
             <div class="pull-right">

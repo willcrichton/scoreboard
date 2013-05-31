@@ -1,13 +1,12 @@
 {{ template "header" . }}
 <div id="admin">
-    <form class="span6">
+    <form class="span6" onsubmit="return false">
         <h3>THE FORM OF ULTIMATE DESTINY</h3>
-        <select class="select" name="challenge">
+        <select class="select" id="week">
         {{ range .Challenges }}
-            <option>{{ .Name }} (Week {{ .Week }})</option>
+            <option value="{{ .Week }}">{{ .Name }} (Week {{ .Week }})</option>
         {{ end }}
         </select><br />
-        <input type="password" id="release" /><br />
         <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
     </form>
     <form class="span4" method="POST">
@@ -36,7 +35,7 @@
             console.log(e)
         }
         $('#thebutton').click(function(){
-            ws.send(JSON.stringify({key: 'release', value: $('#release').val()}));
+            ws.send(JSON.stringify({key: 'release', value: $('#week').val()}));
         });
     </script>
 </div>

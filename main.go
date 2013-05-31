@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type student struct {
@@ -29,14 +30,29 @@ type score struct {
 }
 
 var (
-	store      = sessions.NewCookieStore([]byte(SESSIONKEY))
-	students   *mgo.Collection
-	challenges *mgo.Collection
-	tmplPath   = "www"
-	sessName   = "_98232session"
-	htmlRoot   = ""
-	fileserver = http.FileServer(http.Dir(tmplPath))
+	store        = sessions.NewCookieStore([]byte(SESSIONKEY))
+	students     *mgo.Collection
+	challenges   *mgo.Collection
+	connID       = make(map[*easyws.Connection]string)
+	ws           *easyws.Hub
+	tmplPath     = "www"
+	sessName     = "_98232session"
+	htmlRoot     = ""
+	fileserver   = http.FileServer(http.Dir(tmplPath))
+	curChallenge challenge
+	chActive     = false
 )
+
+func packet(key, value string) string {
+	var p struct{ Key, Value string }
+	p.Key = key
+	p.Value = value
+	str, err := json.Marshal(p)
+	if err != nil {
+		panic(err)
+	}
+	return string(str)
+}
 
 func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 	var result struct{ Key, Value string }
@@ -47,12 +63,16 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 	}
 	switch result.Key {
 	case "release":
-		c.Send("ok, we'll release it")
+		week, _ := strconv.Atoi(result.Value)
+		challenges.Find(bson.M{"week": week}).One(&curChallenge)
+		challenges.Update(bson.M{"week": week}, bson.M{"Public": true})
+		chActive = true
+		ws.Broadcast(packet("release", result.Value))
 	}
 }
 
 func wsOnJoin(c *easyws.Connection, h *easyws.Hub) {
-
+	connID[c] = "wcrichto"
 }
 
 func router(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +89,8 @@ func router(w http.ResponseWriter, r *http.Request) {
 		submitHandler(w, r)
 	case "/download":
 		downloadHandler(w, r)
+	case "/challenge":
+		challengePage(w, r)
 	default:
 		fileserver.ServeHTTP(w, r)
 	}
@@ -76,8 +98,7 @@ func router(w http.ResponseWriter, r *http.Request) {
 
 func serve(file string, w http.ResponseWriter, data interface{}) {
 	t := template.New(file)
-	templ, err := t.ParseFiles(tmplPath+"/"+file, tmplPath+"/_header.html",
-		tmplPath+"/_footer.html", tmplPath+"/challenge.html")
+	templ, err := t.ParseFiles(tmplPath+"/"+file, tmplPath+"/_header.html", tmplPath+"/_footer.html")
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +115,6 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//data := tmpl_data{}
 	var data struct {
 		Andrew   string
 		LoggedIn bool
@@ -126,6 +146,52 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	serve("index.html", w, data)
 }
 
+func challengePage(w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, sessName)
+	if err != nil {
+		w.Write([]byte("bad cookies"))
+		return
+	}
+
+	if session.Values["logged_in"] != "yes" {
+		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
+		return
+	}
+
+	var data struct {
+		Andrew   string
+		LoggedIn bool
+		Root     string
+		Week     int
+		Name     string
+	}
+	data.LoggedIn = session.Values["logged_in"] == "yes"
+	data.Root = htmlRoot
+	data.Andrew = session.Values["andrew"].(string)
+
+	weekStr := r.URL.Query().Get("week")
+	if chActive || weekStr != "" {
+		var ch challenge
+		if weekStr != "" {
+			week, err := strconv.Atoi(weekStr)
+			if err != nil {
+				http.Redirect(w, r, htmlRoot+"/challenge", http.StatusFound)
+				return
+			}
+			challenges.Find(bson.M{"week": week}).One(&ch)
+		} else {
+			ch = curChallenge
+		}
+		data.Week = ch.Week
+		data.Name = ch.Name
+	} else {
+		data.Week = -1
+		data.Name = ""
+	}
+
+	serve("challenge.html", w, data)
+}
+
 func submitHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, sessName)
 	if err != nil {
@@ -146,7 +212,8 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer submission.Close()
-	file, err := os.Create("submissions/" + session.Values["andrew"].(string) + filepath.Ext(header.Filename))
+	ext := filepath.Ext(header.Filename)
+	file, err := os.Create("submissions/" + session.Values["andrew"].(string) + ext)
 	if err != nil {
 		panic(err)
 	}
@@ -209,7 +276,7 @@ func main() {
 	challenges = session.DB("98232").C("challenges")
 
 	// start websocket and listen on 8000
-	easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin)
+	ws = easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin)
 	http.Handle(htmlRoot+"/", http.HandlerFunc(router))
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }

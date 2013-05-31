@@ -1,6 +1,18 @@
-{{ define "challenge" }}
-<form action="{{ .Root }}/submit" method="post" enctype="multipart/form-data">
-    <input type="file" name="submission" /><input type="submit" value="Submit" />
-    <input type="hidden" name="post" value="upload" />
-</form> 
+{{ template "header" . }}
+{{ if .List }}
+
+{{ else }}
+<div class="span8">
+    <h1>Week {{ .Week }}: {{ .Name }}</h1>
+    ssss
+</div>
+<div class="span2">
+    <h1>Submit</h1>
+    <form action="{{ .Root }}/submit" method="post" enctype="multipart/form-data">
+        <input type="file" name="submission" />
+        <input type="submit" value="Submit" class="btn" />
+        <input type="hidden" name="post" value="upload" />
+    </form> 
+</div>
 {{ end }}
+{{ template "footer" . }}

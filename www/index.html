@@ -20,8 +20,18 @@
                 </table>
             </div>
             <div class="span8">
-                <h1>Today's Challenge</h1>
-                {{ template "challenge" . }}
+                <h1>Announcements</h1>
+                Lorem ipsum dolor sit bacon.
             </div> 
        </div>
+       <script>
+            ws.onmessage = function(e){
+                var data = JSON.parse(e.data);
+                switch(data.Key){
+                    case "release":
+                        window.location = "{{ .Root }}/challenge";
+                        break;
+                }                
+            }
+       </script>
 {{ template "footer" . }}

@@ -9,9 +9,13 @@ import (
 )
 
 type challenge struct {
-	Week int
-	Name string
-	Scores []struct{ Andrew string; Score int }
+	Week   int
+	Name   string
+	Public bool
+	Scores []struct {
+		Andrew string
+		Score  int
+	}
 }
 
 func isAdmin(user string) bool {
@@ -33,8 +37,9 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("post") == "challenge" {
 		week, _ := strconv.Atoi(r.FormValue("week"))
 		ch := challenge{
-			Week: week,
-			Name: r.FormValue("name"),
+			Week:   week,
+			Name:   r.FormValue("name"),
+			Public: false,
 		}
 		challenges.Insert(ch)
 		http.Redirect(w, r, htmlRoot+"/admin?success", http.StatusFound)
