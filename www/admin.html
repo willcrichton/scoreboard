@@ -1,12 +1,31 @@
 {{ template "header" . }}
-<button id="thebutton">THE RELEASE BUTTON</button>
-<input type="password" id="release" />
-<script>
-    ws.onmessage = function(e){
-        console.log(e)
-    }
-    $('#thebutton').click(function(){
-        ws.send(JSON.stringify({key: 'release', value: $('#release').val()}));
-    });
-</script>
+<div id="admin">
+    <form>
+        <h3>THE FORM OF ULTIMATE DESTINY</h3>
+        <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
+        <input type="password" id="release" />
+    </form>
+    <table class="table">
+        <tr>
+            <th>User</th>
+            <th>Submission</th>
+            <th>Actions</th>
+        </tr>
+    {{ range .Submissions }}
+        <tr>
+            <td>{{ . }}</td>
+            <td><a href="/download?user={{ . }}">Download</a></td>
+            <td><a href="#">Approve</a> | <a href="#">Reject</a></td>
+        </tr>
+    {{ end }}
+    </table>
+    <script>
+        ws.onmessage = function(e){
+            console.log(e)
+        }
+        $('#thebutton').click(function(){
+            ws.send(JSON.stringify({key: 'release', value: $('#release').val()}));
+        });
+    </script>
+</div>
 {{ template "footer" . }}
