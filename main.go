@@ -31,6 +31,7 @@ type score struct {
 var (
 	store      = sessions.NewCookieStore([]byte(SESSIONKEY))
 	students   *mgo.Collection
+	challenges *mgo.Collection
 	tmplPath   = "www"
 	sessName   = "_98232session"
 	htmlRoot   = ""
@@ -137,6 +138,8 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// todo: check in mongo to see if they've already submitted
+
 	submission, header, err := r.FormFile("submission")
 	if err != nil {
 		http.Redirect(w, r, htmlRoot+"/?bad", http.StatusFound)
@@ -203,6 +206,7 @@ func main() {
 	}
 	defer session.Close()
 	students = session.DB("98232").C("students")
+	challenges = session.DB("98232").C("challenges")
 
 	// start websocket and listen on 8000
 	easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin)
