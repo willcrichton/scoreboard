@@ -63,10 +63,14 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 	}
 	switch result.Key {
 	case "release":
+		if !isAdmin(connID[c]){
+			break
+		}
+		chActive = true
 		week, _ := strconv.Atoi(result.Value)
 		challenges.Find(bson.M{"week": week}).One(&curChallenge)
-		challenges.Update(bson.M{"week": week}, bson.M{"Public": true})
-		chActive = true
+		curChallenge.Public = true
+		challenges.Update(bson.M{"week": week}, curChallenge)
 		ws.Broadcast(packet("release", result.Value))
 	}
 }
@@ -98,6 +102,7 @@ func router(w http.ResponseWriter, r *http.Request) {
 
 func serve(file string, w http.ResponseWriter, data interface{}) {
 	t := template.New(file)
+	t = t.Funcs(template.FuncMap{"eq": func(a, b string) bool { return a == b }})
 	templ, err := t.ParseFiles(tmplPath+"/"+file, tmplPath+"/_header.html", tmplPath+"/_footer.html")
 	if err != nil {
 		panic(err)
@@ -119,6 +124,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		Andrew   string
 		LoggedIn bool
 		Root     string
+		Page     string
 		Scores   []score
 	}
 
@@ -127,6 +133,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	}
 	data.LoggedIn = session.Values["logged_in"] == "yes"
 	data.Root = htmlRoot
+	data.Page = "home"
 	data.Scores = make([]score, 10)
 
 	var result []student
@@ -162,31 +169,41 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 		Andrew   string
 		LoggedIn bool
 		Root     string
+		Page     string
 		Week     int
 		Name     string
+		List     bool
+		Past     []challenge
+		Active   bool
 	}
 	data.LoggedIn = session.Values["logged_in"] == "yes"
 	data.Root = htmlRoot
 	data.Andrew = session.Values["andrew"].(string)
+	data.Page = "challenge"
 
 	weekStr := r.URL.Query().Get("week")
 	if chActive || weekStr != "" {
 		var ch challenge
-		if weekStr != "" {
+		if chActive {
+			ch = curChallenge
+		} else {
 			week, err := strconv.Atoi(weekStr)
 			if err != nil {
 				http.Redirect(w, r, htmlRoot+"/challenge", http.StatusFound)
 				return
 			}
 			challenges.Find(bson.M{"week": week}).One(&ch)
-		} else {
-			ch = curChallenge
 		}
 		data.Week = ch.Week
 		data.Name = ch.Name
+		data.List = false
+		data.Active = ch.Week == curChallenge.Week && chActive
 	} else {
 		data.Week = -1
 		data.Name = ""
+		data.List = true
+		data.Active = false
+		challenges.Find(nil).Sort("-week").All(&data.Past)
 	}
 
 	serve("challenge.html", w, data)
