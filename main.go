@@ -3,19 +3,14 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"github.com/willcrichton/easyws"
 	"html/template"
-	"io"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 type student struct {
@@ -30,56 +25,23 @@ type score struct {
 }
 
 var (
-	store        = sessions.NewCookieStore([]byte(SESSIONKEY))
-	students     *mgo.Collection
-	challenges   *mgo.Collection
-	connID       = make(map[*easyws.Connection]string)
-	ws           *easyws.Hub
-	tmplPath     = "www"
-	sessName     = "_98232session"
-	htmlRoot     = ""
-	fileserver   = http.FileServer(http.Dir(tmplPath))
-	curChallenge challenge
-	chActive     = false
+	store        = sessions.NewCookieStore([]byte(SESSIONKEY)) // Andrew stored in cookie
+	students     *mgo.Collection                               // mongo set of students in db
+	challenges   *mgo.Collection                               // mongo set of all challenges
+	connID       = make(map[*easyws.Connection]string)         // map from conn to andrew id
+	ws           *easyws.Hub                                   // websocket server
+	tmplPath     = "www"                                       // path to templates (rel. to executable)
+	sessName     = "_98232session"                             // name of cookie
+	htmlRoot     = ""                                          // root of fileserver
+	fileserver   = http.FileServer(http.Dir(tmplPath))         // fs object for serving static stuff
+	curChallenge challenge                                     // holds challenge obj if active
+	chActive     = false                                       // if challenge is happening now
 )
 
-func packet(key, value string) string {
-	var p struct{ Key, Value string }
-	p.Key = key
-	p.Value = value
-	str, err := json.Marshal(p)
-	if err != nil {
-		panic(err)
-	}
-	return string(str)
-}
-
-func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
-	var result struct{ Key, Value string }
-	err := json.Unmarshal([]byte(msg), &result)
-	if err != nil {
-		c.Send("bad message")
-		return
-	}
-	switch result.Key {
-	case "release":
-		if !isAdmin(connID[c]){
-			break
-		}
-		chActive = true
-		week, _ := strconv.Atoi(result.Value)
-		challenges.Find(bson.M{"week": week}).One(&curChallenge)
-		curChallenge.Public = true
-		challenges.Update(bson.M{"week": week}, curChallenge)
-		ws.Broadcast(packet("release", result.Value))
-	}
-}
-
-func wsOnJoin(c *easyws.Connection, h *easyws.Hub) {
-	connID[c] = "wcrichto"
-}
-
+// sends page requests to the appropriate handlers
 func router(w http.ResponseWriter, r *http.Request) {
+	// giant switch statements wheeeeeeeee
+	// todo: make this less switchy
 	switch r.URL.Path {
 	case "/", "/index.html":
 		homePage(w, r)
@@ -96,10 +58,12 @@ func router(w http.ResponseWriter, r *http.Request) {
 	case "/challenge":
 		challengePage(w, r)
 	default:
+		// by default, assume they're asking for a static file
 		fileserver.ServeHTTP(w, r)
 	}
 }
 
+// write template to client w/ appropriate data and header/footer
 func serve(file string, w http.ResponseWriter, data interface{}) {
 	t := template.New(file)
 	t = t.Funcs(template.FuncMap{"eq": func(a, b string) bool { return a == b }})
@@ -114,12 +78,14 @@ func serve(file string, w http.ResponseWriter, data interface{}) {
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
+	// get logged-in status
 	session, err := store.Get(r, sessName)
 	if err != nil {
 		w.Write([]byte("bad cookies"))
 		return
 	}
 
+	// we pass this data to the template
 	var data struct {
 		Andrew   string
 		LoggedIn bool
@@ -136,6 +102,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	data.Page = "home"
 	data.Scores = make([]score, 10)
 
+	// get the leaderboard from students collection
 	var result []student
 	err = students.Find(nil).Sort("-points").Limit(10).All(&result)
 	if err != nil {
@@ -153,103 +120,19 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	serve("index.html", w, data)
 }
 
-func challengePage(w http.ResponseWriter, r *http.Request) {
-	session, err := store.Get(r, sessName)
-	if err != nil {
-		w.Write([]byte("bad cookies"))
-		return
-	}
-
-	if session.Values["logged_in"] != "yes" {
-		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
-		return
-	}
-
-	var data struct {
-		Andrew   string
-		LoggedIn bool
-		Root     string
-		Page     string
-		Week     int
-		Name     string
-		List     bool
-		Past     []challenge
-		Active   bool
-	}
-	data.LoggedIn = session.Values["logged_in"] == "yes"
-	data.Root = htmlRoot
-	data.Andrew = session.Values["andrew"].(string)
-	data.Page = "challenge"
-
-	weekStr := r.URL.Query().Get("week")
-	if chActive || weekStr != "" {
-		var ch challenge
-		if chActive {
-			ch = curChallenge
-		} else {
-			week, err := strconv.Atoi(weekStr)
-			if err != nil {
-				http.Redirect(w, r, htmlRoot+"/challenge", http.StatusFound)
-				return
-			}
-			challenges.Find(bson.M{"week": week}).One(&ch)
-		}
-		data.Week = ch.Week
-		data.Name = ch.Name
-		data.List = false
-		data.Active = ch.Week == curChallenge.Week && chActive
-	} else {
-		data.Week = -1
-		data.Name = ""
-		data.List = true
-		data.Active = false
-		challenges.Find(nil).Sort("-week").All(&data.Past)
-	}
-
-	serve("challenge.html", w, data)
-}
-
-func submitHandler(w http.ResponseWriter, r *http.Request) {
-	session, err := store.Get(r, sessName)
-	if err != nil {
-		w.Write([]byte("bad cookies"))
-		return
-	}
-
-	if session.Values["logged_in"] != "yes" {
-		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
-		return
-	}
-
-	// todo: check in mongo to see if they've already submitted
-
-	submission, header, err := r.FormFile("submission")
-	if err != nil {
-		http.Redirect(w, r, htmlRoot+"/?bad", http.StatusFound)
-		return
-	}
-	defer submission.Close()
-	ext := filepath.Ext(header.Filename)
-	file, err := os.Create("submissions/" + session.Values["andrew"].(string) + ext)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	io.Copy(file, submission)
-
-	http.Redirect(w, r, htmlRoot+"/?success", http.StatusFound)
-}
-
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.PostFormValue("post") != "login" {
 		return
 	}
+	// get password and sha1 hash it
+	// todo: make more secure passwording
 	andrew := r.PostFormValue("andrew")
 	pass := r.PostFormValue("password")
 	hasher := sha1.New()
 	hasher.Write([]byte(pass))
 	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
+	// check user/pass combo in db
 	var result struct{ Andrew string }
 	err := students.Find(bson.M{"andrew": andrew, "password": sha}).One(&result)
 	fmt.Printf("Attempted login from %s (%s)\n", andrew, sha)
@@ -258,6 +141,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// passed the test, log 'em in
 	session, err := store.Get(r, sessName)
 	if err != nil {
 		http.Redirect(w, r, htmlRoot+"/?fail", http.StatusFound)
@@ -283,7 +167,8 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("Starting server")
-	// connect to mongo
+	// note: in /usr/local/etc/mongod.conf, set bind_ip = 127.0.0.1
+	//       to prevent tricksy remote connections
 	session, err := mgo.Dial("localhost")
 	if err != nil {
 		panic(err)
