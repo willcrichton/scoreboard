@@ -9,7 +9,15 @@
     <script src="{{ .Root }}/js/bootstrap.min.js"></script>
     <script>
       ws = new WebSocket("ws://localhost:8000{{ .Root }}/ws");
-      ws.onopen = function(e){ console.log("websocket opened"); }
+      ws.onopen = function(e){ 
+        console.log("websocket opened"); 
+        var cookies = document.cookie.split(';');
+        for(var i in cookies){
+          if(cookies[i].search('_98232session') != -1){
+            ws.send(JSON.stringify({key: "cookie", value: cookies[i].substring(15, cookies[i].length)}));
+          } 
+        }
+      }
       ws.onclose = function(e){ console.log("websocket closed", e); }
       ws.onmessage = function(e){
           var data = JSON.parse(e.data);

@@ -24,17 +24,17 @@
         <input class="btn" type="submit" value="Save" />
         <input type="hidden" name="post" value="challenge" />
     </form>
-    <table class="table">
+    <table class="table" id="submissions">
         <tr>
             <th>User</th>
             <th>Submission</th>
-            <th>Actions</th>
+            <th>Options</th>
         </tr>
     {{ range .Submissions }}
         <tr>
-            <td>{{ . }}</td>
-            <td><a href="/download?user={{ . }}">Download</a></td>
-            <td><a href="#">Approve</a> | <a href="#">Reject</a></td>
+            <td class="user">{{ . }}</td>
+            <td class="download"><a href="/download?user={{ . }}">Download</a></td>
+            <td class="options"><a href="#">Approve</a> | <a href="#">Reject</a></td>
         </tr>
     {{ end }}
     </table>
@@ -44,6 +44,20 @@
         }
         $('#thebutton').click(function(){
             ws.send(JSON.stringify({key: 'release', value: $('#week').val()}));
+        });
+
+        $('#submissions a').click(function(){
+            var parent = $(this).closest('tr');
+            var user = parent.find('.user').html();
+            ws.send(JSON.stringify({key: $(this).html().toLowerCase(), value: user}))
+            if($(this).html() == 'Approve'){
+                parent.addClass('approved');
+                parent.find('.options').html('');
+            } else {
+                parent.fadeOut(function(){
+                    $(this).remove();
+                })
+            }
         });
     </script>
 </div>

@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/willcrichton/easyws"
+	"fmt"
+	//"github.com/willcrichton/easyws"
+	"easyws"
 	"labix.org/v2/mgo/bson"
+	"net/http"
 	"strconv"
 )
 
@@ -39,16 +42,19 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		curChallenge.Public = true
 		challenges.Update(bson.M{"week": week}, curChallenge)
 		ws.Broadcast(packet("release", result.Value))
+	case "approve":
+		fmt.Println(result)
+	case "reject":
+		fmt.Println(result)
 	}
 }
 
-func wsOnJoin(c *easyws.Connection, h *easyws.Hub) {
+func wsOnJoin(r *http.Request, c *easyws.Connection, h *easyws.Hub) {
 	// associate a connection object w/ an andrew id
 	session, err := store.Get(r, sessName)
-	if err != nil {
-		w.Write([]byte("bad cookies"))
+	if err != nil || session.Values["andrew"] == nil {
 		return
 	}
 
-	connID[c] = session.Values["andrew"]
+	connID[c] = session.Values["andrew"].(string)
 }

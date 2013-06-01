@@ -35,7 +35,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
 		return
 	}
-	
+
 	// adding a new challenge to the db (i.e. form on the right was submitted)
 	if r.FormValue("post") == "challenge" {
 		week, _ := strconv.Atoi(r.FormValue("week"))
@@ -48,7 +48,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, htmlRoot+"/admin?success", http.StatusFound)
 		return
 	}
-	
+
 	var data struct {
 		LoggedIn    bool
 		Andrew      string
@@ -88,7 +88,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 /* when an admin requests a download for a submission, we gotta serve it
  * up a little bit specially because submissions should never be exposed to
  * peering eyes, so we have a submissions directory outside of the html root.
- * granted, we could just protect the html directory, but this is more fun! 
+ * granted, we could just protect the html directory, but this is more fun!
  */
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, sessName)
