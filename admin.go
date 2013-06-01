@@ -50,12 +50,16 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		LoggedIn    bool
 		Andrew      string
 		Root        string
+		Page        string
 		Submissions []string
 		Challenges  []challenge
+		Active      bool
 	}
 	data.LoggedIn = true
 	data.Andrew = session.Values["andrew"].(string)
 	data.Root = htmlRoot
+	data.Page = "admin"
+	data.Active = chActive
 
 	// read current submission from directory (switch to mongo?)
 	dir, err := ioutil.ReadDir("submissions")
@@ -99,6 +103,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	for _, stat := range dir {
 		matches := rx.FindStringSubmatch(stat.Name())
 		if matches[0] == andrew {
+			// todo: use Content-Disposition or whatever to name file
 			file, err := os.Open("submissions/" + stat.Name())
 			if err != nil {
 				panic(err)

@@ -1,5 +1,13 @@
 {{ template "header" . }}
 <div id="admin">
+    {{ if .Active }}
+    <div class="alert alert-info">
+        <h4>
+            <div class="icon-exclamation-sign icon-white" style="position:relative;top:3px;"></div>
+            HEADS UP: the competition is LIVE
+        </h4>
+    </div>
+    {{ end }}
     <form class="span6" onsubmit="return false">
         <h3>THE FORM OF ULTIMATE DESTINY</h3>
         <select class="select" id="week">
