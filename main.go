@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/gorilla/sessions"
-	"github.com/willcrichton/easyws"
+	"easyws"
 	"html/template"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -18,7 +18,7 @@ type student struct {
 	Points int
 }
 
-type score struct {
+type leaderboard struct {
 	Andrew string
 	Score  int
 	Place  int
@@ -91,7 +91,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		LoggedIn bool
 		Root     string
 		Page     string
-		Scores   []score
+		Scores   []leaderboard
 	}
 
 	if session.Values["andrew"] != nil {
@@ -100,8 +100,8 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	data.LoggedIn = session.Values["logged_in"] == "yes"
 	data.Root = htmlRoot
 	data.Page = "home"
-	data.Scores = make([]score, 10)
-
+	data.Scores = make([]leaderboard, 10)
+	
 	// get the leaderboard from students collection
 	var result []student
 	err = students.Find(nil).Sort("-points").Limit(10).All(&result)
@@ -110,7 +110,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := 0; i < 10; i++ {
 		if i < len(result) {
-			data.Scores[i] = score{
+			data.Scores[i] = leaderboard{
 				Andrew: result[i].Andrew,
 				Score:  result[i].Points,
 				Place:  i + 1,
@@ -178,7 +178,7 @@ func main() {
 	challenges = session.DB("98232").C("challenges")
 
 	// start websocket and listen on 8000
-	ws = easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin)
+	ws = easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin, wsOnLeave)
 	http.Handle(htmlRoot+"/", http.HandlerFunc(router))
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }

@@ -6,17 +6,8 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"labix.org/v2/mgo/bson"
 )
-
-type challenge struct {
-	Week   int
-	Name   string
-	Public bool
-	Scores []struct {
-		Andrew string
-		Score  int
-	}
-}
 
 // right now we have two statically assigned admins
 // todo: admin management
@@ -54,7 +45,10 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		Andrew      string
 		Root        string
 		Page        string
-		Submissions []string
+		Submissions []struct {
+			Andrew string
+			Done   bool
+		}
 		Challenges  []challenge
 		Active      bool
 	}
@@ -66,20 +60,31 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 
 	// read current submission list from directory
 	// todo: leave this work to mongo, not file reading
-	dir, err := ioutil.ReadDir("submissions")
-	if err != nil {
-		panic(err)
-	}
-	data.Submissions = make([]string, len(dir))
-	i := 0
-	rx, _ := regexp.Compile(`[^\.]+`)
-	for _, stat := range dir {
-		matches := rx.FindStringSubmatch(stat.Name())
-		data.Submissions[i] = matches[0]
-		i++
-	}
+	if chActive {
+		dir, err := ioutil.ReadDir("submissions")
+		if err != nil {
+			panic(err)
+		}
+		rx, _ := regexp.Compile(`[^\.]+`)
+		for _, stat := range dir {
+			matches := rx.FindStringSubmatch(stat.Name())
+			andrew := matches[0]
+			var ch challenge
+			var sub struct { Andrew string; Done bool }
+			sub.Andrew = andrew
+			sub.Done = false
+			challenges.Find(bson.M{"week": curChallenge.Week}).One(&ch)
+			for _, entry := range ch.Scores {
+				if entry.Andrew == andrew {
+					sub.Done = true
+					break
+				}
+			}
+			data.Submissions = append(data.Submissions, sub)
+		}
 
-	// get challenge list from mongo
+		// get challenge list from mongo
+	}
 	challenges.Find(nil).Sort("-week").All(&data.Challenges)
 
 	serve("admin.html", w, data)

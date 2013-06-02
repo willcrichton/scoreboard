@@ -4,10 +4,25 @@ import (
 	"io"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 )
+
+type score struct {
+	Andrew string
+    Score  int
+	Time   int
+}
+
+type challenge struct {
+    Week   int
+    Name   string
+    Public bool
+    Scores []score
+}
 
 func challengePage(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, sessName)
@@ -67,6 +82,18 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 	serve("challenge.html", w, data)
 }
 
+func getSubmission(andrew string) string {
+	dir, _ := ioutil.ReadDir("submission")
+	rx, _ := regexp.Compile(`[^\.]+`)
+	for _, stat := range dir {
+		matches := rx.FindStringSubmatch(stat.Name())
+		if matches[0] == andrew {
+			return stat.Name()
+		}
+	}
+	return ""
+}
+
 // when students submit responses to the challenge, they're handled here
 func submitHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, sessName)
@@ -75,15 +102,29 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if session.Values["logged_in"] != "yes" {
-		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
+	if session.Values["logged_in"] != "yes" || !chActive {
+		http.Redirect(w, r, htmlRoot+"/challenge", http.StatusFound)
 		return
 	}
 
 	// todo: check in mongo to see if they've already submitted
+	var cur challenge
+	challenges.Find(bson.M{"week": curChallenge.Week}).One(&cur)
+	for _, entry := range cur.Scores {
+		if entry.Andrew == session.Values["andrew"] {
+			http.Redirect(w, r, htmlRoot+"/challenge?fail=oldsubmit", http.StatusFound)
+			return
+		}
+	}
+
+	if getSubmission(session.Values["andrew"].(string)) != "" {
+		http.Redirect(w, r, htmlRoot+"/challenge?fail=oldsubmit", http.StatusFound)
+		return
+	}
+
 	submission, header, err := r.FormFile("submission")
 	if err != nil {
-		http.Redirect(w, r, htmlRoot+"/?bad", http.StatusFound)
+		http.Redirect(w, r, htmlRoot+"/challenge?fail=submitfile", http.StatusFound)
 		return
 	}
 	defer submission.Close()
@@ -95,5 +136,11 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	io.Copy(file, submission)
 
-	http.Redirect(w, r, htmlRoot+"/?success", http.StatusFound)
+	for conn, andrew := range connID {
+		if isAdmin(andrew) {
+			conn.Send(packet("received", session.Values["andrew"].(string)))
+		}
+	}
+
+	http.Redirect(w, r, htmlRoot+"/challenge?success", http.StatusFound)
 }

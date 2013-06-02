@@ -30,34 +30,53 @@
             <th>Submission</th>
             <th>Options</th>
         </tr>
+    {{ with $x := . }}
     {{ range .Submissions }}
-        <tr>
-            <td class="user">{{ . }}</td>
-            <td class="download"><a href="/download?user={{ . }}">Download</a></td>
-            <td class="options"><a href="#">Approve</a> | <a href="#">Reject</a></td>
+        <tr {{ if .Done }}class="approved"{{ end }}>
+            <td class="user">{{ .Andrew }}</td>
+            <td class="download"><a href="{{ $x.Root }}/download?user={{ .Andrew }}">Download</a></td>
+            <td class="options">{{ if not .Done }}<a href="#">Approve</a> | <a href="#">Reject</a>{{ end }}</td>
         </tr>
+    {{ end }}
     {{ end }}
     </table>
     <script>
         ws.onmessage = function(e){
-            console.log(e)
+            try {
+                var data = JSON.parse(e.data);
+                switch(data.Key){
+                    case 'received':
+                        var html = '<tr> \
+                            <td class="user">' + data.Value + '</td>\
+                            <td class="download"><a href="{{ .Root }}/download?user="' + data.Value + '">Download</a></td> \
+                            <td class="options"><a href="#">Approve</a> | <a href="#">Reject</a></td>\
+                        </tr>';
+                        $('#submissions').append(html);
+                        break;
+                }
+            } catch(err){
+                console.log(e, err);
+            }
         }
         $('#thebutton').click(function(){
             ws.send(JSON.stringify({key: 'release', value: $('#week').val()}));
         });
 
-        $('#submissions a').click(function(){
+        $(document).delegate('#submissions .options a', 'click', function(){
             var parent = $(this).closest('tr');
             var user = parent.find('.user').html();
-            ws.send(JSON.stringify({key: $(this).html().toLowerCase(), value: user}))
+            var value;
             if($(this).html() == 'Approve'){
                 parent.addClass('approved');
                 parent.find('.options').html('');
+                value = user
             } else {
                 parent.fadeOut(function(){
                     $(this).remove();
                 })
+                value = {andrew: user, message: prompt("Reason:")}
             }
+            ws.send(JSON.stringify({key: $(this).html().toLowerCase(), value: JSON.stringify(value)}))
         });
     </script>
 </div>

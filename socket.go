@@ -2,13 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	//"github.com/willcrichton/easyws"
 	"easyws"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 )
+
+var timer int64
 
 // packets are just a basic key/value pair encoded w/ json
 func packet(key, value string) string {
@@ -42,10 +44,51 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		curChallenge.Public = true
 		challenges.Update(bson.M{"week": week}, curChallenge)
 		ws.Broadcast(packet("release", result.Value))
+		timer = time.Now().Unix()
 	case "approve":
-		fmt.Println(result)
+		if !isAdmin(connID[c]) {
+			break
+		}
+		
+		id := result.Value
+		for conn, andrew := range connID {
+			if andrew == id {
+				conn.Send(packet("approved", "thumbs up"))
+			}
+		}
+		var cur challenge
+		filter := bson.M{"week": curChallenge.Week}
+		challenges.Find(filter).One(&cur)
+		pts := 10 - len(cur.Scores)
+		if pts < 0 {
+			pts = 0
+		}
+		cur.Scores = append(cur.Scores, score{Andrew: id, Score: pts, Time: int(time.Now().Unix() - timer)})
+		challenges.Update(filter, cur)
+
+		var u student
+		filter = bson.M{"andrew": id}
+		students.Find(filter).One(&u)
+		u.Points += pts
+		students.Update(filter, u)
 	case "reject":
-		fmt.Println(result)
+		var rejectInfo struct { Andrew, Message string }
+		err := json.Unmarshal([]byte(result.Value), &rejectInfo)
+		if err != nil {
+			break
+		}
+		if !isAdmin(connID[c]) {
+			break
+		}
+		
+		id := rejectInfo.Andrew
+		for conn, andrew := range connID {
+			if andrew == id {
+				conn.Send(packet("rejected", rejectInfo.Message))
+			}
+		}
+			
+		os.Remove("submissions/" + getSubmission(id))
 	}
 }
 
@@ -57,4 +100,8 @@ func wsOnJoin(r *http.Request, c *easyws.Connection, h *easyws.Hub) {
 	}
 
 	connID[c] = session.Values["andrew"].(string)
+}
+
+func wsOnLeave(r *http.Request, c *easyws.Connection, h *easyws.Hub) {
+	delete(connID, c)
 }
