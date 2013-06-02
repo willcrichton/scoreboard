@@ -29,23 +29,35 @@
                   alert("Your entry was accepted! Stay tuned for the final scores...");
                   break;
               case "rejected":
-                  alert("Your entry was deemed incorrect because: " + data.Value + ". Please submit again.");
-                  break
+                  alert("Your entry was deemed incorrect because: " + data.Value + ". Please submit again");
+                  break;
+              case "place":
+                  var place = JSON.parse(data.Value);
+                  var html = '<tr> \
+                    <td>' + place.Place + '</td> \
+                    <td>' + place.Andrew + '</td> \
+                    <td>' + place.Time + '</td> \
+                  </tr>';
+                  $('#scoreboard').append(html)
+                  break;
           }                
       }
 
       $(function(){
-        var GET = document.documentURI.split('?')[1].split('=');
-        switch(GET[0]){
-          case 'fail':
-            var errmsg;
-            switch(GET[1]){
-              case 'oldsubmit': 
-                errmsg = "you've already submitted an answer for this challenge";
-                break
-            }
-            $('.navbar + .container').prepend('<div class="alert alert-fail"><h4>Error: ' + errmsg + '</h4></div>');
-            break;
+        var GET = document.documentURI.split('?');
+        if(GET.length > 1) {
+          GET = GET[1].split('=');
+          switch(GET[0]){
+            case 'fail':
+              var errmsg;
+              switch(GET[1]){
+                case 'oldsubmit': 
+                  errmsg = "you've already submitted an answer for this challenge";
+                  break
+              }
+              $('.navbar + .container').prepend('<div class="alert alert-fail"><h4>Error: ' + errmsg + '</h4></div>');
+              break;
+          }
         }
       });
     </script>

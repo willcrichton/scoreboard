@@ -15,6 +15,7 @@ type score struct {
 	Andrew string
     Score  int
 	Time   int
+	Place  int
 }
 
 type challenge struct {
@@ -46,6 +47,7 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 		List     bool
 		Past     []challenge
 		Active   bool
+		Scores []score
 	}
 	data.LoggedIn = session.Values["logged_in"] == "yes"
 	data.Root = htmlRoot
@@ -56,20 +58,22 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 	if chActive || weekStr != "" {
 		// if a challenge is specified, show that challenge's full description
 		var ch challenge
-		if chActive {
-			ch = curChallenge
+		var week int
+		if weekStr == "" {
+			week = curChallenge.Week
 		} else {
-			week, err := strconv.Atoi(weekStr)
+			week, err = strconv.Atoi(weekStr)
 			if err != nil {
 				http.Redirect(w, r, htmlRoot+"/challenge", http.StatusFound)
 				return
 			}
-			challenges.Find(bson.M{"week": week}).One(&ch)
 		}
+		challenges.Find(bson.M{"week": week}).One(&ch)
 		data.Week = ch.Week
 		data.Name = ch.Name
 		data.List = false
 		data.Active = ch.Week == curChallenge.Week && chActive
+		data.Scores = ch.Scores[:10]
 	} else {
 		// otherwise, output a list of previous challenges
 		data.Week = -1

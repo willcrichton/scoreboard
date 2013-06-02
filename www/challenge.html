@@ -15,15 +15,30 @@
     <h1>Week {{ .Week }}: {{ .Name }}</h1>
     Description...
 </div>
-{{ if .Active }}
 <div class="span2">
+    {{ if .Active }}
     <h1>Submit</h1>
     <form action="{{ .Root }}/submit" method="post" enctype="multipart/form-data">
         <input type="file" name="submission" />
         <input type="submit" value="Submit" class="btn" />
         <input type="hidden" name="post" value="upload" />
     </form> 
+    {{ end }} 
+    <h1 style="margin-top:50px;">Scoreboard</h1>
+    <table class="table" id="scoreboard">
+         <tr>
+            <th>#</th>
+            <th>Andrew</th>
+            <th>Time</th>
+        </tr>
+        {{ range .Scores }}
+        <tr>
+            <td>{{ .Place }}</td>
+            <td>{{ .Andrew }}</td>
+            <td>{{ .Time }}</td>
+        </tr>
+        {{ end }}
+    </table>
 </div>
-{{ end }} 
 {{ end }}
 {{ template "footer" . }}

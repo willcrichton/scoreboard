@@ -74,9 +74,9 @@
                 parent.fadeOut(function(){
                     $(this).remove();
                 })
-                value = {andrew: user, message: prompt("Reason:")}
+                value = JSON.stringify({andrew: user, message: prompt("Reason:")})
             }
-            ws.send(JSON.stringify({key: $(this).html().toLowerCase(), value: JSON.stringify(value)}))
+            ws.send(JSON.stringify({key: $(this).html().toLowerCase(), value: value}))
         });
     </script>
 </div>

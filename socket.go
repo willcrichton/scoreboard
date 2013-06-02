@@ -50,7 +50,9 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 			break
 		}
 		
+		// update record in challenge entry
 		id := result.Value
+		timeDiff := int(time.Now().Unix() - timer)
 		for conn, andrew := range connID {
 			if andrew == id {
 				conn.Send(packet("approved", "thumbs up"))
@@ -63,14 +65,21 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		if pts < 0 {
 			pts = 0
 		}
-		cur.Scores = append(cur.Scores, score{Andrew: id, Score: pts, Time: int(time.Now().Unix() - timer)})
+		cur.Scores = append(cur.Scores, score{Andrew: id, Score: pts, Place: len(cur.Scores), Time: timeDiff})
 		challenges.Update(filter, cur)
 
+		// update student's personal record
 		var u student
 		filter = bson.M{"andrew": id}
 		students.Find(filter).One(&u)
 		u.Points += pts
 		students.Update(filter, u)
+
+		// broadcast approval to system
+		if pts > 0 {
+			str, _ := json.Marshal(score{Andrew: id, Place: pts - 9, Time: timeDiff})
+			ws.Broadcast(packet("place", string(str)))
+		}
 	case "reject":
 		var rejectInfo struct { Andrew, Message string }
 		err := json.Unmarshal([]byte(result.Value), &rejectInfo)
