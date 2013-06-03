@@ -73,7 +73,11 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 		data.Name = ch.Name
 		data.List = false
 		data.Active = ch.Week == curChallenge.Week && chActive
-		data.Scores = ch.Scores[:10]
+		n := len(ch.Scores)
+		if n > 10 {
+			n = 10
+		}
+		data.Scores = ch.Scores[:n]
 	} else {
 		// otherwise, output a list of previous challenges
 		data.Week = -1
