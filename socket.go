@@ -39,12 +39,22 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 			break
 		}
 		chActive = true
-		week, _ := strconv.Atoi(result.Value)
+		var opts struct { Week string; Time string }
+		err = json.Unmarshal([]byte(result.Value), &opts)
+		week, _ := strconv.Atoi(opts.Week)
+		end, _ := strconv.Atoi(opts.Time)
 		challenges.Find(bson.M{"week": week}).One(&curChallenge)
 		curChallenge.Public = true
 		challenges.Update(bson.M{"week": week}, curChallenge)
 		ws.Broadcast(packet("release", result.Value))
 		timer = time.Now().Unix()
+		go func(){
+			time.Sleep(time.Duration(end) * time.Minute)
+			chActive = false
+			ws.Broadcast(packet("end", ""))
+			os.RemoveAll("submissions")
+			os.Mkdir("submissions", 0600)
+		}()
 	case "approve":
 		if !isAdmin(connID[c]) {
 			break
@@ -61,11 +71,11 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		var cur challenge
 		filter := bson.M{"week": curChallenge.Week}
 		challenges.Find(filter).One(&cur)
-		pts := 10 - len(cur.Scores)
-		if pts < 0 {
-			pts = 0
+		pts := 15 - len(cur.Scores)
+		if pts < 5 {
+			pts = 5
 		}
-		cur.Scores = append(cur.Scores, score{Andrew: id, Score: pts, Place: len(cur.Scores), Time: timeDiff})
+		cur.Scores = append(cur.Scores, score{Andrew: id, Score: pts, Place: 1 + len(cur.Scores), Time: timeDiff})
 		challenges.Update(filter, cur)
 
 		// update student's personal record
@@ -76,8 +86,8 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		students.Update(filter, u)
 
 		// broadcast approval to system
-		if pts > 0 {
-			str, _ := json.Marshal(score{Andrew: id, Place: pts - 9, Time: timeDiff})
+		if pts > 5 {
+			str, _ := json.Marshal(score{Andrew: id, Place: 1 + len(cur.Scores), Time: timeDiff})
 			ws.Broadcast(packet("place", string(str)))
 		}
 	case "reject":

@@ -1,13 +1,11 @@
 {{ template "header" . }}
 <div id="admin">
-    {{ if .Active }}
-    <div class="alert alert-info">
+    <div class="alert alert-info" {{ if not .Active }} style="display:none;" {{ end }}>
         <h4>
             <div class="icon-exclamation-sign icon-white" style="position:relative;top:3px;"></div>
             HEADS UP: the competition is LIVE
         </h4>
     </div>
-    {{ end }}
     <form class="span6" onsubmit="return false">
         <h3>THE FORM OF ULTIMATE DESTINY</h3>
         <select class="select" id="week">
@@ -15,12 +13,13 @@
             <option value="{{ .Week }}">{{ .Name }} (Week {{ .Week }})</option>
         {{ end }}
         </select><br />
+        <input type="number" class="span" id="time" min="0" placeholder="Time" /><br />
         <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
     </form>
     <form class="span4" method="POST">
         <h3>THE LESS EXCITING FORM</h3>
         <input type="text" placeholder="Name" name="name" /><br />
-        <input type="number" class="span" value="0" name="week" /><br />
+        <input type="number" class="span" min="1" placeholder="Week" name="week" /><br />
         <input class="btn" type="submit" value="Save" />
         <input type="hidden" name="post" value="challenge" />
     </form>
@@ -59,7 +58,8 @@
             }
         }
         $('#thebutton').click(function(){
-            ws.send(JSON.stringify({key: 'release', value: $('#week').val()}));
+            ws.send(JSON.stringify({key: 'release', value: JSON.stringify({week: $('#week').val(), time: $('#time').val()})}));
+            $('.alert').css('display', 'block');
         });
 
         $(document).delegate('#submissions .options a', 'click', function(){
