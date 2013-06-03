@@ -2,9 +2,9 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"net/http"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,16 +13,17 @@ import (
 
 type score struct {
 	Andrew string
-    Score  int
+	Score  int
 	Time   int
 	Place  int
 }
 
 type challenge struct {
-    Week   int
-    Name   string
-    Public bool
-    Scores []score
+	Week        int
+	Name        string
+	Public      bool
+	Scores      []score
+	Description string
 }
 
 func challengePage(w http.ResponseWriter, r *http.Request) {
@@ -38,21 +39,24 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data struct {
+		Admin    bool
 		Andrew   string
 		LoggedIn bool
 		Root     string
 		Page     string
 		Week     int
+		Description string
 		Name     string
 		List     bool
 		Past     []challenge
 		Active   bool
-		Scores []score
+		Scores   []score
 	}
 	data.LoggedIn = session.Values["logged_in"] == "yes"
 	data.Root = htmlRoot
 	data.Andrew = session.Values["andrew"].(string)
 	data.Page = "challenge"
+	data.Admin = isAdmin(session.Values["andrew"].(string))
 
 	weekStr := r.URL.Query().Get("week")
 	if chActive || weekStr != "" {
@@ -73,6 +77,7 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 		data.Name = ch.Name
 		data.List = false
 		data.Active = ch.Week == curChallenge.Week && chActive
+		data.Description = ch.Description
 		n := len(ch.Scores)
 		if n > 10 {
 			n = 10

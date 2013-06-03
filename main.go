@@ -2,10 +2,10 @@ package main
 
 import (
 	"crypto/sha1"
+	"easyws"
 	"encoding/base64"
 	"fmt"
 	"github.com/gorilla/sessions"
-	"easyws"
 	"html/template"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -14,8 +14,9 @@ import (
 )
 
 type student struct {
-	Andrew string
-	Points int
+	Andrew   string
+	Points   int
+	Password string
 }
 
 type leaderboard struct {
@@ -87,6 +88,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 	// we pass this data to the template
 	var data struct {
+		Admin    bool
 		Andrew   string
 		LoggedIn bool
 		Root     string
@@ -101,7 +103,8 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	data.Root = htmlRoot
 	data.Page = "home"
 	data.Scores = make([]leaderboard, 10)
-	
+	data.Admin = isAdmin(session.Values["andrew"].(string))
+
 	// get the leaderboard from students collection
 	var result []student
 	err = students.Find(nil).Sort("-points").Limit(10).All(&result)
@@ -137,14 +140,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	err := students.Find(bson.M{"andrew": andrew, "password": sha}).One(&result)
 	fmt.Printf("Attempted login from %s (%s)\n", andrew, sha)
 	if err != nil {
-		http.Redirect(w, r, htmlRoot+"/?fail", http.StatusFound)
+		http.Redirect(w, r, htmlRoot+"/?fail=login", http.StatusFound)
 		return
 	}
 
 	// passed the test, log 'em in
 	session, err := store.Get(r, sessName)
 	if err != nil {
-		http.Redirect(w, r, htmlRoot+"/?fail", http.StatusFound)
+		http.Redirect(w, r, htmlRoot+"/?fail=cookie", http.StatusFound)
 		return
 	}
 	session.Values["logged_in"] = "yes"
@@ -157,7 +160,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, sessName)
 	if err != nil {
-		http.Redirect(w, r, htmlRoot+"/?fail", http.StatusFound)
+		http.Redirect(w, r, htmlRoot+"/?fail=cookie", http.StatusFound)
 		return
 	}
 	session.Values["logged_in"] = "no"

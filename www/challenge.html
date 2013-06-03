@@ -3,17 +3,19 @@
 <h1>Past Challenges</h1>
 {{ with $x := . }}
     {{ range .Past }}
+    {{ if .Public }}
     <div class="past">
             <h3><a href="{{ $x.Root }}/challenge?week={{ .Week }}">Week {{ .Week }}: {{ .Name }}</a></h3>
-            Description...
+            {{ .Description | html }}
         </a>
     </div>
+    {{ end }}
     {{ end }}
 {{ end }}
 {{ else }}
 <div class="span8">
     <h1>Week {{ .Week }}: {{ .Name }}</h1>
-    Description...
+    {{ .Description | html }}
 </div>
 <div class="span2">
     {{ if .Active }}

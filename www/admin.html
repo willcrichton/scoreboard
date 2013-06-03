@@ -1,44 +1,51 @@
 {{ template "header" . }}
 <div id="admin">
-    <div class="alert alert-info" {{ if not .Active }} style="display:none;" {{ end }}>
-        <h4>
-            <div class="icon-exclamation-sign icon-white" style="position:relative;top:3px;"></div>
-            HEADS UP: the competition is LIVE
-        </h4>
-    </div>
-    <form class="span6" onsubmit="return false">
-        <h3>THE FORM OF ULTIMATE DESTINY</h3>
-        <select class="select" id="week">
-        {{ range .Challenges }}
-            <option value="{{ .Week }}">{{ .Name }} (Week {{ .Week }})</option>
+    <div class="span8">
+        <div class="alert alert-info" {{ if not .Active }} style="display:none;" {{ end }}>
+            <h4>
+                <div class="icon-exclamation-sign icon-white" style="position:relative;top:3px;"></div>
+                HEADS UP: the competition is LIVE
+            </h4>
+        </div>
+        
+        <h1>Submissions</h1>
+        <table class="table" id="submissions">
+            <tr>
+                <th>User</th>
+                <th>Submission</th>
+                <th>Options</th>
+            </tr>
+        {{ with $x := . }}
+        {{ range .Submissions }}
+            <tr {{ if .Done }}class="approved"{{ end }}>
+                <td class="user">{{ .Andrew }}</td>
+                <td class="download"><a href="{{ $x.Root }}/download?user={{ .Andrew }}">Download</a></td>
+                <td class="options">{{ if not .Done }}<a href="#">Approve</a> | <a href="#">Reject</a>{{ end }}</td>
+            </tr>
         {{ end }}
-        </select><br />
-        <input type="number" class="span" id="time" min="0" placeholder="Time" /><br />
-        <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
-    </form>
-    <form class="span4" method="POST">
-        <h3>THE LESS EXCITING FORM</h3>
-        <input type="text" placeholder="Name" name="name" /><br />
-        <input type="number" class="span" min="1" placeholder="Week" name="week" /><br />
-        <input class="btn" type="submit" value="Save" />
-        <input type="hidden" name="post" value="challenge" />
-    </form>
-    <table class="table" id="submissions">
-        <tr>
-            <th>User</th>
-            <th>Submission</th>
-            <th>Options</th>
-        </tr>
-    {{ with $x := . }}
-    {{ range .Submissions }}
-        <tr {{ if .Done }}class="approved"{{ end }}>
-            <td class="user">{{ .Andrew }}</td>
-            <td class="download"><a href="{{ $x.Root }}/download?user={{ .Andrew }}">Download</a></td>
-            <td class="options">{{ if not .Done }}<a href="#">Approve</a> | <a href="#">Reject</a>{{ end }}</td>
-        </tr>
-    {{ end }}
-    {{ end }}
-    </table>
+        {{ end }}
+        </table>
+    </div>
+    <div class="span3">
+        <form onsubmit="return false">
+            <h3>Release Challenge</h3>
+            <select class="select" id="week">
+            {{ range .Challenges }}
+                <option value="{{ .Week }}">{{ .Name }} (Week {{ .Week }})</option>
+            {{ end }}
+            </select><br />
+            <input type="number" class="span" id="time" min="0" placeholder="Time" /><br />
+            <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
+        </form>
+        <form method="POST">
+            <h3>Add Challenge</h3>
+            <input type="text" placeholder="Name" name="name" /><br />
+            <input type="number" class="span" min="1" placeholder="Week" name="week" /><br />
+            <textarea name="description" placeholder="Description" rows="10"></textarea>
+            <input class="btn" type="submit" value="Save" />
+            <input type="hidden" name="post" value="challenge" />
+        </form>
+    </div>
     <script>
         ws.onmessage = function(e){
             try {

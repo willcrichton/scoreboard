@@ -2,11 +2,11 @@ package main
 
 import (
 	"io/ioutil"
+	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
-	"labix.org/v2/mgo/bson"
 )
 
 // right now we have two statically assigned admins
@@ -31,9 +31,10 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("post") == "challenge" {
 		week, _ := strconv.Atoi(r.FormValue("week"))
 		ch := challenge{
-			Week:   week,
-			Name:   r.FormValue("name"),
-			Public: false,
+			Week:        week,
+			Name:        r.FormValue("name"),
+			Public:      false,
+			Description: r.FormValue("description"),
 		}
 		challenges.Insert(ch)
 		http.Redirect(w, r, htmlRoot+"/admin?success", http.StatusFound)
@@ -41,6 +42,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data struct {
+		Admin       bool
 		LoggedIn    bool
 		Andrew      string
 		Root        string
@@ -49,9 +51,10 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 			Andrew string
 			Done   bool
 		}
-		Challenges  []challenge
-		Active      bool
+		Challenges []challenge
+		Active     bool
 	}
+	data.Admin = true
 	data.LoggedIn = true
 	data.Andrew = session.Values["andrew"].(string)
 	data.Root = htmlRoot
@@ -70,7 +73,10 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 			matches := rx.FindStringSubmatch(stat.Name())
 			andrew := matches[0]
 			var ch challenge
-			var sub struct { Andrew string; Done bool }
+			var sub struct {
+				Andrew string
+				Done   bool
+			}
 			sub.Andrew = andrew
 			sub.Done = false
 			challenges.Find(bson.M{"week": curChallenge.Week}).One(&ch)

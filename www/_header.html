@@ -53,12 +53,11 @@
           switch(GET[0]){
             case 'fail':
               var errmsg;
-              switch(GET[1]){
-                case 'oldsubmit': 
-                  errmsg = "you've already submitted an answer for this challenge";
-                  break
+              var messages = {
+                "oldsubmit": "you've already submitted an answer for this challenge",
+                "login": "Invalid login"
               }
-              $('.navbar + .container').prepend('<div class="alert alert-fail"><h4>Error: ' + errmsg + '</h4></div>');
+              $('.navbar + .container').prepend('<div class="alert alert-fail"><h4>Error: ' +  messages[GET[1]] + '</h4></div>');
               break;
           }
         }
@@ -79,6 +78,7 @@
             <ul class="nav">
               <li {{ if eq .Page "home" }}class="active"{{ end }}><a href="{{ .Root }}/">Home</a></li>
               <li {{ if eq .Page "challenge" }}class="active"{{ end }}><a href="{{ .Root }}/challenge">Challenge</a></li>
+              {{ if and .Admin .LoggedIn }}<li {{ if eq .Page "admin" }}class="active"{{ end }}><a href="{{ .Root }}/admin">Admin</a></li>{{ end }}
             </ul>
             {{ if .LoggedIn }}
             <div class="pull-right">
