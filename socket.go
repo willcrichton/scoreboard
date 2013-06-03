@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"easyws"
+	"encoding/json"
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
@@ -39,27 +39,29 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 			break
 		}
 		chActive = true
-		var opts struct { Week string; Time string }
+		var opts struct {
+			Week string
+			Time string
+		}
 		err = json.Unmarshal([]byte(result.Value), &opts)
 		week, _ := strconv.Atoi(opts.Week)
 		end, _ := strconv.Atoi(opts.Time)
+		challenges.Update(bson.M{"week": week}, bson.M{"$set": bson.M{"public": true}})
 		challenges.Find(bson.M{"week": week}).One(&curChallenge)
-		curChallenge.Public = true
-		challenges.Update(bson.M{"week": week}, curChallenge)
 		ws.Broadcast(packet("release", result.Value))
 		timer = time.Now().Unix()
-		go func(){
+		go func() {
 			time.Sleep(time.Duration(end) * time.Minute)
 			chActive = false
 			ws.Broadcast(packet("end", ""))
 			os.RemoveAll("submissions")
-			os.Mkdir("submissions", 0600)
+			os.Mkdir("submissions", os.ModePerm|os.ModeDir)
 		}()
 	case "approve":
 		if !isAdmin(connID[c]) {
 			break
 		}
-		
+
 		// update record in challenge entry
 		id := result.Value
 		timeDiff := int(time.Now().Unix() - timer)
@@ -87,11 +89,11 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 
 		// broadcast approval to system
 		if pts > 5 {
-			str, _ := json.Marshal(score{Andrew: id, Place: 1 + len(cur.Scores), Time: timeDiff})
+			str, _ := json.Marshal(score{Andrew: id, Place: len(cur.Scores), Time: timeDiff})
 			ws.Broadcast(packet("place", string(str)))
 		}
 	case "reject":
-		var rejectInfo struct { Andrew, Message string }
+		var rejectInfo struct{ Andrew, Message string }
 		err := json.Unmarshal([]byte(result.Value), &rejectInfo)
 		if err != nil {
 			break
@@ -99,14 +101,14 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		if !isAdmin(connID[c]) {
 			break
 		}
-		
+
 		id := rejectInfo.Andrew
 		for conn, andrew := range connID {
 			if andrew == id {
 				conn.Send(packet("rejected", rejectInfo.Message))
 			}
 		}
-			
+
 		os.Remove("submissions/" + getSubmission(id))
 	}
 }
