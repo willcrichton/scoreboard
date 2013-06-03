@@ -18,13 +18,13 @@
 <div class="span2">
     {{ if .Active }}
     <h1>Submit</h1>
-    <form action="{{ .Root }}/submit" method="post" enctype="multipart/form-data">
+    <form action="{{ .Root }}/submit" method="post" enctype="multipart/form-data" style="margin-bottom:50px;">
         <input type="file" name="submission" />
         <input type="submit" value="Submit" class="btn" />
         <input type="hidden" name="post" value="upload" />
     </form> 
     {{ end }} 
-    <h1 style="margin-top:50px;">Scoreboard</h1>
+    <h1>Scoreboard</h1>
     <table class="table" id="scoreboard">
          <tr>
             <th>#</th>
