@@ -30,13 +30,22 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	// adding a new challenge to the db (i.e. form on the right was submitted)
 	if r.FormValue("post") == "challenge" {
 		week, _ := strconv.Atoi(r.FormValue("week"))
-		ch := challenge{
-			Week:        week,
-			Name:        r.FormValue("name"),
-			Public:      false,
-			Description: r.FormValue("description"),
+		if r.FormValue("edit") != "" {
+			edit, _ := strconv.Atoi(r.FormValue("edit"))
+			var ch challenge
+			challenges.Find(bson.M{"week": edit}).One(&ch)
+			ch.Name = r.FormValue("name")
+			ch.Description = r.FormValue("description")
+			ch.Week = week
+			challenges.Update(bson.M{"week": edit}, ch)
+		} else {
+			challenges.Insert(challenge{
+				Week:        week,
+				Name:        r.FormValue("name"),
+				Public:      false,
+				Description: r.FormValue("description"),
+			})
 		}
-		challenges.Insert(ch)
 		http.Redirect(w, r, htmlRoot+"/admin?success", http.StatusFound)
 		return
 	}
@@ -52,6 +61,8 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 			Done   bool
 		}
 		Challenges []challenge
+		IsEditing  bool
+		Edit       challenge
 		Active     bool
 	}
 	data.Admin = true
@@ -60,6 +71,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	data.Root = htmlRoot
 	data.Page = "admin"
 	data.Active = chActive
+	data.IsEditing = false
 
 	// read current submission list from directory
 	// todo: leave this work to mongo, not file reading
@@ -92,6 +104,13 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		// get challenge list from mongo
 	}
 	challenges.Find(nil).Sort("-week").All(&data.Challenges)
+
+	weekStr := r.URL.Query().Get("edit")
+	if weekStr != "" {
+		week, _ := strconv.Atoi(weekStr)
+		challenges.Find(bson.M{"week": week}).One(&data.Edit)
+		data.IsEditing = true
+	}
 
 	serve("admin.html", w, data)
 }

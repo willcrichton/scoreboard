@@ -1,13 +1,12 @@
 {{ template "header" . }}
 <div id="admin">
-    <div class="span8">
-        <div class="alert alert-info" {{ if not .Active }} style="display:none;" {{ end }}>
-            <h4>
-                <div class="icon-exclamation-sign icon-white" style="position:relative;top:3px;"></div>
-                HEADS UP: the competition is LIVE
-            </h4>
-        </div>
-        
+    <div class="alert alert-info" {{ if not .Active }} style="display:none;" {{ end }}>
+        <h4>
+            <div class="icon-exclamation-sign icon-white" style="position:relative;top:3px;"></div>
+            HEADS UP: the competition is LIVE
+        </h4>
+    </div>
+    <div class="span4">
         <h1>Submissions</h1>
         <table class="table" id="submissions">
             <tr>
@@ -26,8 +25,9 @@
         {{ end }}
         </table>
     </div>
-    <div class="span3">
-        <form onsubmit="return false">
+    <div class="span7" style="border-left:1px solid #666;padding-left:20px;">
+        <h1>Challenges</h1>
+        <form onsubmit="return false" class="span3">
             <h3>Release Challenge</h3>
             <select class="select" id="week">
             {{ range .Challenges }}
@@ -37,14 +37,32 @@
             <input type="number" class="span" id="time" min="0" placeholder="Time" /><br />
             <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
         </form>
-        <form method="POST">
-            <h3>Add Challenge</h3>
-            <input type="text" placeholder="Name" name="name" /><br />
-            <input type="number" class="span" min="1" placeholder="Week" name="week" /><br />
-            <textarea name="description" placeholder="Description" rows="10"></textarea>
+        <form method="POST" class="span3">
+            <h3>Add/Edit Challenge</h3>
+            <input type="text" placeholder="Name" name="name" {{ if .IsEditing }}value="{{ .Edit.Name }}"{{ end }} /><br />
+            <input type="number" class="span" min="1" placeholder="Week" name="week" {{ if .IsEditing }}value="{{ .Edit.Week }}"{{ end }} /><br />
+            <textarea name="description" placeholder="Description">{{ if .IsEditing }}{{ .Edit.Description }}{{ end }}</textarea>
             <input class="btn" type="submit" value="Save" />
             <input type="hidden" name="post" value="challenge" />
+            {{ if .IsEditing }}<input type="hidden" name="edit" value="{{ .Edit.Week }}" />{{ end }}
         </form>
+        <table class="table" id="challenges">
+            <tr>
+                <th>Week</th>
+                <th>Name</th>
+                <th>Options</th>
+            </tr>
+        {{ with $x := . }}
+        {{ range .Challenges }}
+            <tr>
+                <td>{{ .Week }}</td>
+                <td>{{ .Name }}</td>
+                <td><a href="{{ $x.Root }}/admin?edit={{ .Week }}">Edit</a> | 
+                    <a href="{{ $x.Root }}/admin?delete={{ .Week }}">Delete</a></td>
+            </tr>
+        {{ end }}
+        {{ end }}
+        </table>
     </div>
     <script>
         ws.onmessage = function(e){
