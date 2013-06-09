@@ -6,7 +6,6 @@
     {{ if .Public }}
     <div class="past">
             <h3><a href="{{ $x.Root }}/challenge?week={{ .Week }}">Week {{ .Week }}: {{ .Name }}</a></h3>
-            {{ .Description | html }}
         </a>
     </div>
     {{ end }}
@@ -15,7 +14,7 @@
 {{ else }}
 <div class="span8">
     <h1>Week {{ .Week }}: {{ .Name }}</h1>
-    {{ .Description | html }}
+    {{ .Description }}
 </div>
 <div class="span2">
     {{ if .Active }}

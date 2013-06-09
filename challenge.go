@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -39,18 +40,18 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data struct {
-		Admin    bool
-		Andrew   string
-		LoggedIn bool
-		Root     string
-		Page     string
-		Week     int
-		Description string
-		Name     string
-		List     bool
-		Past     []challenge
-		Active   bool
-		Scores   []score
+		Admin       bool
+		Andrew      string
+		LoggedIn    bool
+		Root        string
+		Page        string
+		Week        int
+		Description template.HTML
+		Name        string
+		List        bool
+		Past        []challenge
+		Active      bool
+		Scores      []score
 	}
 	data.LoggedIn = session.Values["logged_in"] == "yes"
 	data.Root = htmlRoot
@@ -77,7 +78,7 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 		data.Name = ch.Name
 		data.List = false
 		data.Active = ch.Week == curChallenge.Week && chActive
-		data.Description = ch.Description
+		data.Description = template.HTML(ch.Description)
 		n := len(ch.Scores)
 		if n > 10 {
 			n = 10
