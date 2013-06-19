@@ -46,9 +46,15 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		err = json.Unmarshal([]byte(result.Value), &opts)
 		week, _ := strconv.Atoi(opts.Week)
 		end, _ := strconv.Atoi(opts.Time)
+
+		// update the record in Mongo to reflect the release
 		challenges.Update(bson.M{"week": week}, bson.M{"$set": bson.M{"public": true}})
 		challenges.Find(bson.M{"week": week}).One(&curChallenge)
+
+		// tell everyone which challenged has been released
 		ws.Broadcast(packet("release", result.Value))
+
+		// start the round timer
 		timer = time.Now().Unix()
 		go func() {
 			time.Sleep(time.Duration(end) * time.Minute)
@@ -70,9 +76,13 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 				conn.Send(packet("approved", "thumbs up"))
 			}
 		}
+
+		// find current challenge
 		var cur challenge
 		filter := bson.M{"week": curChallenge.Week}
 		challenges.Find(filter).One(&cur)
+
+		// calculate score and update their record in the challenge
 		pts := 15 - len(cur.Scores)
 		if pts < 5 {
 			pts = 5
@@ -93,6 +103,7 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 			ws.Broadcast(packet("place", string(str)))
 		}
 	case "reject":
+		// Get the rejected student and rejection reason
 		var rejectInfo struct{ Andrew, Message string }
 		err := json.Unmarshal([]byte(result.Value), &rejectInfo)
 		if err != nil {
@@ -102,6 +113,7 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 			break
 		}
 
+		// Find which connection corresponds to the given andrew
 		id := rejectInfo.Andrew
 		for conn, andrew := range connID {
 			if andrew == id {
@@ -109,6 +121,7 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 			}
 		}
 
+		// delete their submission from the submissions directory
 		os.Remove("submissions/" + getSubmission(id))
 	}
 }
