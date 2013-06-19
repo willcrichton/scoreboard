@@ -1,9 +1,22 @@
+/***************************************************
+ * Scoreboard, a Go programming competition hoster *
+ * Created by Will Crichton, 2013                  *
+ * In order to run the executable, you will need:  *
+ * 1. MongoDB running locally                      *
+ * 2. The following directory structure:           *
+ *    - scoreboard                                 *
+ *    - hidden/                                    *
+ *    - submissions/                               *
+ *    - www/                                       *
+ ***************************************************/
+
 package main
 
 import (
 	"crypto/sha1"
 	"easyws"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"html/template"
@@ -11,6 +24,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type student struct {
@@ -37,6 +51,7 @@ var (
 	fileserver   = http.FileServer(http.Dir(tmplPath))         // fs object for serving static stuff
 	curChallenge challenge                                     // holds challenge obj if active
 	chActive     = false                                       // if challenge is happening now
+	port         = flag.Int("port", 8000, "Application port")
 )
 
 // sends page requests to the appropriate handlers
@@ -169,7 +184,9 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("Starting server")
+	flag.Parse()
+	portStr := strconv.Itoa(*port)
+
 	// note: in /usr/local/etc/mongod.conf, set bind_ip = 127.0.0.1
 	//       to prevent tricksy remote connections
 	session, err := mgo.Dial("localhost")
@@ -183,5 +200,6 @@ func main() {
 	// start websocket and listen on 8000
 	ws = easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin, wsOnLeave)
 	http.Handle(htmlRoot+"/", http.HandlerFunc(router))
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	log.Fatal(http.ListenAndServe(":"+portStr, nil))
+	fmt.Println("Starting server on :" + portStr)
 }
