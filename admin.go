@@ -1,3 +1,9 @@
+/**************************************************
+ * admin.go
+ * Displays the administration page
+ * Does submission validation and challenge editing
+ **************************************************/
+
 package main
 
 import (
@@ -22,15 +28,18 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check user authentication
 	if session.Values["logged_in"] != "yes" || !isAdmin(session.Values["andrew"].(string)) {
 		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
 		return
 	}
 
-	// adding a new challenge to the db (i.e. form on the right was submitted)
+	// if they post to the page, do operations on challenge collection
 	if r.FormValue("post") == "challenge" {
 		week, _ := strconv.Atoi(r.FormValue("week"))
+
 		if r.FormValue("edit") != "" {
+			// update challenge in db if they're editing
 			edit, _ := strconv.Atoi(r.FormValue("edit"))
 			var ch challenge
 			challenges.Find(bson.M{"week": edit}).One(&ch)
@@ -39,6 +48,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 			ch.Week = week
 			challenges.Update(bson.M{"week": edit}, ch)
 		} else {
+			// otherwise insert a new entry into collection
 			challenges.Insert(challenge{
 				Week:        week,
 				Name:        r.FormValue("name"),
@@ -46,10 +56,12 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 				Description: r.FormValue("description"),
 			})
 		}
+
 		http.Redirect(w, r, htmlRoot+"/admin?success", http.StatusFound)
 		return
 	}
 
+	// if they're not submitting as a form, show regular admin page
 	var data struct {
 		Admin       bool
 		LoggedIn    bool
@@ -73,38 +85,47 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	data.Active = chActive
 	data.IsEditing = false
 
-	// read current submission list from directory
-	// todo: leave this work to mongo, not file reading
+	// if we're running a challenge, populate submissions list
 	if chActive {
 		dir, err := ioutil.ReadDir("submissions")
 		if err != nil {
 			panic(err)
 		}
+
 		rx, _ := regexp.Compile(`[^\.]+`)
+
+		// scan through submissions directory
 		for _, stat := range dir {
+
+			// extract andrew ID from submission name (i.e. ignore extension)
 			matches := rx.FindStringSubmatch(stat.Name())
 			andrew := matches[0]
+
 			var ch challenge
 			var sub struct {
 				Andrew string
 				Done   bool
 			}
+
 			sub.Andrew = andrew
 			sub.Done = false
 			challenges.Find(bson.M{"week": curChallenge.Week}).One(&ch)
+
+			// determine from db entry for challenge if they've submitted already
 			for _, entry := range ch.Scores {
 				if entry.Andrew == andrew {
 					sub.Done = true
 					break
 				}
 			}
+
 			data.Submissions = append(data.Submissions, sub)
 		}
-
-		// get challenge list from mongo
 	}
+
 	challenges.Find(nil).Sort("-week").All(&data.Challenges)
 
+	// if they're in the process of editing a challenge, mark form as such
 	weekStr := r.URL.Query().Get("edit")
 	if weekStr != "" {
 		week, _ := strconv.Atoi(weekStr)
@@ -127,11 +148,13 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// authenticate user
 	if session.Values["logged_in"] != "yes" || !isAdmin(session.Values["andrew"].(string)) {
 		http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
 		return
 	}
 
+	// get andrew ID from GET
 	andrew := r.URL.Query().Get("user")
 	if andrew == "" {
 		http.Redirect(w, r, htmlRoot+"/admin", http.StatusFound)

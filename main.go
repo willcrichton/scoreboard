@@ -51,7 +51,7 @@ var (
 	fileserver   = http.FileServer(http.Dir(tmplPath))         // fs object for serving static stuff
 	curChallenge challenge                                     // holds challenge obj if active
 	chActive     = false                                       // if challenge is happening now
-	port         = flag.Int("port", 8000, "Application port")
+	port         = flag.Int("port", 8000, "Application port")  // port that the app runs on (default 8000)
 )
 
 // sends page requests to the appropriate handlers
@@ -81,12 +81,20 @@ func router(w http.ResponseWriter, r *http.Request) {
 
 // write template to client w/ appropriate data and header/footer
 func serve(file string, w http.ResponseWriter, data interface{}) {
+
+	// load template
 	t := template.New(file)
+
+	// give template an equality function for strings
 	t = t.Funcs(template.FuncMap{"eq": func(a, b string) bool { return a == b }})
+
+	// parse template, making sure to load header and footer files
 	templ, err := t.ParseFiles(tmplPath+"/"+file, tmplPath+"/_header.html", tmplPath+"/_footer.html")
 	if err != nil {
 		panic(err)
 	}
+
+	// output generated html to REsponseWriter
 	err = templ.Execute(w, data)
 	if err != nil {
 		panic(err)
@@ -178,6 +186,8 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, htmlRoot+"/?fail=cookie", http.StatusFound)
 		return
 	}
+
+	// set cookie to indicate they're logged out
 	session.Values["logged_in"] = "no"
 	sessions.Save(r, w)
 	http.Redirect(w, r, htmlRoot+"/", http.StatusFound)
@@ -193,13 +203,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// close mongo session once main exits
 	defer session.Close()
+
+	// get the relevant collections into our globals
 	students = session.DB("98232").C("students")
 	challenges = session.DB("98232").C("challenges")
 
 	// start websocket and listen on 8000
 	ws = easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin, wsOnLeave)
+
+	// add router to our http server
 	http.Handle(htmlRoot+"/", http.HandlerFunc(router))
+
+	// start server
 	log.Fatal(http.ListenAndServe(":"+portStr, nil))
 	fmt.Println("Starting server on :" + portStr)
 }

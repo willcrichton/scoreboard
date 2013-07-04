@@ -1,3 +1,9 @@
+/**************************************************
+ * challenge.go
+ * Displays the challenge page and handles challenge
+ * submissions.
+ **************************************************/
+
 package main
 
 import (
@@ -59,6 +65,7 @@ func challengePage(w http.ResponseWriter, r *http.Request) {
 	data.Page = "challenge"
 	data.Admin = isAdmin(session.Values["andrew"].(string))
 
+	
 	weekStr := r.URL.Query().Get("week")
 	if chActive || weekStr != "" {
 		// if a challenge is specified, show that challenge's full description

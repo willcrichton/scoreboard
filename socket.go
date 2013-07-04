@@ -1,8 +1,14 @@
+/**************************************************
+ * socket.go
+ * Does logic for WebSocket
+ **************************************************/
+
 package main
 
 import (
 	"easyws"
 	"encoding/json"
+	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
@@ -38,7 +44,11 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		if !isAdmin(connID[c]) {
 			break
 		}
+
+		// update chActive global
 		chActive = true
+
+		// extract challenge data from packet
 		var opts struct {
 			Week string
 			Time string
@@ -50,6 +60,16 @@ func wsOnMessage(msg string, c *easyws.Connection, h *easyws.Hub) {
 		// update the record in Mongo to reflect the release
 		challenges.Update(bson.M{"week": week}, bson.M{"$set": bson.M{"public": true}})
 		challenges.Find(bson.M{"week": week}).One(&curChallenge)
+
+		// move hidden assets to public directory
+		dir, err := ioutil.ReadDir("hidden")
+		if err != nil {
+			panic(err)
+		}
+
+		for _, file := range dir {
+			os.Rename("hidden/"+file.Name(), tmplPath+"/assets/"+file.Name())
+		}
 
 		// tell everyone which challenged has been released
 		ws.Broadcast(packet("release", result.Value))
