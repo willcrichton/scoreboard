@@ -24,6 +24,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -210,6 +211,11 @@ func main() {
 	// get the relevant collections into our globals
 	students = session.DB("98232").C("students")
 	challenges = session.DB("98232").C("challenges")
+
+	// create directories not included in the git repo
+	os.Mkdir("submissions", 0755)
+	os.Mkdir("hidden", 0755)
+	os.Mkdir("www/assets", 0755)
 
 	// start websocket and listen on 8000
 	ws = easyws.Socket(htmlRoot+"/ws", wsOnMessage, wsOnJoin, wsOnLeave)
