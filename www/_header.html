@@ -8,7 +8,7 @@
     <script src="{{ .Root }}/js/jquery-1.10.min.js"></script>
     <script src="{{ .Root }}/js/bootstrap.min.js"></script>
     <script>
-      ws = new WebSocket("ws://localhost:8000{{ .Root }}/ws");
+      ws = new WebSocket("ws://" + document.location.host + "{{ .Root }}/ws");
       ws.onopen = function(e){ 
         console.log("websocket opened"); 
         var cookies = document.cookie.split(';');
