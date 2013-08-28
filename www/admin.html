@@ -6,9 +6,60 @@
             HEADS UP: the competition is LIVE
         </h4>
     </div>
-    <div class="span4">
+    <ul class="nav nav-tabs" id="tabs">
+      <li class="active"><a href="#challenges" data-toggle="tab">Challenges</a></li>
+      <li><a href="#submissions" data-toggle="tab">Submissions</a></li>
+      <li><a href="#students" data-toggle="tab">Students</a></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane active" id="challenges">
+        <h1>Challenges</h1>
+        <div class="row">
+          <div class="span5">
+            <form onsubmit="return false">
+              <h3>Release Challenge</h3>
+              <select class="select" id="week">
+              {{ range .Challenges }}
+                <option value="{{ .Week }}">{{ .Name }} (Week {{ .Week }})</option>
+              {{ end }}
+              </select><br />
+              <input type="number" class="span" id="time" min="0" placeholder="Time" /><br />
+              <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
+            </form>
+            <form method="POST">
+              <h3>Add/Edit Challenge</h3>
+              <input type="text" placeholder="Name" name="name" {{ if .IsEditing }}value="{{ .Edit.Name }}"{{ end }} /><br />
+              <input type="number" class="span" min="1" placeholder="Week" name="week" {{ if .IsEditing }}value="{{ .Edit.Week }}"{{ end }} /><br />
+              <textarea name="description" placeholder="Description">{{ if .IsEditing }}{{ .Edit.Description }}{{ end }}</textarea><br />
+              <input class="btn" type="submit" value="Save" />
+              <input type="hidden" name="post" value="challenge" />
+              {{ if .IsEditing }}<input type="hidden" name="edit" value="{{ .Edit.Week }}" />{{ end }}
+            </form>
+          </div>
+          <div class="span6">
+            <table class="table" id="challenges">
+              <tr>
+                <th>Week</th>
+                <th>Name</th>
+                <th>Options</th>
+              </tr>
+              {{ with $x := . }}
+              {{ range .Challenges }}
+              <tr>
+                <td>{{ .Week }}</td>
+                <td>{{ .Name }}</td>
+                <td><a href="{{ $x.Root }}/admin?edit={{ .Week }}">Edit</a> | 
+                  <a href="{{ $x.Root }}/admin?delete={{ .Week }}">Delete</a></td>
+              </tr>
+              {{ end }}
+              {{ end }}
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="submissions">
         <h1>Submissions</h1>
-        <table class="table" id="submissions">
+        <table class="table" id="submission-list">
             <tr>
                 <th>User</th>
                 <th>Submission</th>
@@ -24,46 +75,34 @@
         {{ end }}
         {{ end }}
         </table>
-    </div>
-    <div class="span7" style="border-left:1px solid #666;padding-left:20px;">
-        <h1>Challenges</h1>
-        <form onsubmit="return false" class="span3">
-            <h3>Release Challenge</h3>
-            <select class="select" id="week">
-            {{ range .Challenges }}
-                <option value="{{ .Week }}">{{ .Name }} (Week {{ .Week }})</option>
+      </div>
+      <div class="tab-pane" id="students">
+        <h1>Students</h1>
+        <div class="row">
+          <div class="span5">
+            <form method="POST">
+              <h3>Bulk Add Students</h3>
+              <textarea name="students"></textarea><br />
+              <input class="btn" type="submit" value="Add" />
+              <input type="hidden" name="post" value="bulkadd" />
+            </form>
+          </div>
+          <table class="table span6">
+            <tr>
+              <th>Andrew</th>
+            </tr>
+            {{ with $x := . }}
+            {{ range .Students }}
+            <tr>
+              <td>{{ .Andrew }}</td>
+            </tr>
             {{ end }}
-            </select><br />
-            <input type="number" class="span" id="time" min="0" placeholder="Time" /><br />
-            <button id="thebutton" class="btn">THE RELEASE BUTTON</button>
-        </form>
-        <form method="POST" class="span3">
-            <h3>Add/Edit Challenge</h3>
-            <input type="text" placeholder="Name" name="name" {{ if .IsEditing }}value="{{ .Edit.Name }}"{{ end }} /><br />
-            <input type="number" class="span" min="1" placeholder="Week" name="week" {{ if .IsEditing }}value="{{ .Edit.Week }}"{{ end }} /><br />
-            <textarea name="description" placeholder="Description">{{ if .IsEditing }}{{ .Edit.Description }}{{ end }}</textarea>
-            <input class="btn" type="submit" value="Save" />
-            <input type="hidden" name="post" value="challenge" />
-            {{ if .IsEditing }}<input type="hidden" name="edit" value="{{ .Edit.Week }}" />{{ end }}
-        </form>
-        <table class="table" id="challenges">
-            <tr>
-                <th>Week</th>
-                <th>Name</th>
-                <th>Options</th>
-            </tr>
-        {{ with $x := . }}
-        {{ range .Challenges }}
-            <tr>
-                <td>{{ .Week }}</td>
-                <td>{{ .Name }}</td>
-                <td><a href="{{ $x.Root }}/admin?edit={{ .Week }}">Edit</a> | 
-                    <a href="{{ $x.Root }}/admin?delete={{ .Week }}">Delete</a></td>
-            </tr>
-        {{ end }}
-        {{ end }}
-        </table>
+            {{ end }}
+          </table>
+        </div>
+      </div>
     </div>
+
     <script>
         ws.onmessage = function(e){
             try {
@@ -75,7 +114,7 @@
                             <td class="download"><a href="{{ .Root }}/download?user="' + data.Value + '">Download</a></td> \
                             <td class="options"><a href="#">Approve</a> | <a href="#">Reject</a></td>\
                         </tr>';
-                        $('#submissions').append(html);
+                        $('#submission-list').append(html);
                         break;
                 }
             } catch(err){

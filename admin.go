@@ -7,18 +7,31 @@
 package main
 
 import (
+	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // right now we have two statically assigned admins
 // todo: admin management
 func isAdmin(user string) bool {
 	return user == ROOT1 || user == ROOT2
+}
+
+func randString(n int) string {
+    const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    var bytes = make([]byte, n)
+    rand.Read(bytes)
+    for i, b := range bytes {
+        bytes[i] = alphanum[b % byte(len(alphanum))]
+    }
+    return string(bytes)
 }
 
 func adminPage(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +48,8 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if they post to the page, do operations on challenge collection
-	if r.FormValue("post") == "challenge" {
+	switch r.FormValue("post") {
+	case  "challenge":
 		week, _ := strconv.Atoi(r.FormValue("week"))
 
 		if r.FormValue("edit") != "" {
@@ -59,6 +73,19 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 
 		http.Redirect(w, r, htmlRoot+"/admin?success", http.StatusFound)
 		return
+	case "bulkadd":
+		for _, andrew := range strings.Split(r.FormValue("students"), "\n") {
+			andrew = strings.TrimSpace(andrew)
+			password := randString(10)
+			students.Insert(student{
+				Andrew: andrew,
+				Password: hashPassword(password),
+			})
+
+			fmt.Fprintf(w, "%s,%s\n", andrew, password)
+		}
+
+		return
 	}
 
 	if val, ok := r.URL.Query()["delete"]; ok {
@@ -81,6 +108,7 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		IsEditing  bool
 		Edit       challenge
 		Active     bool
+		Students   []student
 	}
 	data.Admin = true
 	data.LoggedIn = true
@@ -137,6 +165,8 @@ func adminPage(w http.ResponseWriter, r *http.Request) {
 		challenges.Find(bson.M{"week": week}).One(&data.Edit)
 		data.IsEditing = true
 	}
+
+	students.Find(nil).Sort("andrew").All(&data.Students)
 
 	serve("admin.html", w, data)
 }

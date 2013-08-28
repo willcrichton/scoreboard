@@ -151,6 +151,12 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	serve("index.html", w, data)
 }
 
+func hashPassword(password string) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(password))
+	return base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+}
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.PostFormValue("post") != "login" {
 		return
@@ -159,9 +165,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// todo: make more secure passwording
 	andrew := r.PostFormValue("andrew")
 	pass := r.PostFormValue("password")
-	hasher := sha1.New()
-	hasher.Write([]byte(pass))
-	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	sha := hashPassword(pass)
 
 	// check user/pass combo in db
 	var result struct{ Andrew string }

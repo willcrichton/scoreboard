@@ -30,6 +30,11 @@ input[type=file] {
     margin: 0 0 10px 0;
 }
 
+#admin textarea {
+    width: 400px;
+    height: 150px;
+}
+
 #submissions .approved {
     background: #afa;
 }
